@@ -1,19 +1,28 @@
 import React, { useEffect, useState } from 'react'
-import { Row, Col, ListGroup, Image, Card, Button } from 'react-bootstrap'
+import { useDispatch, useSelector } from 'react-redux'
+import { Row, Col, ListGroup, Image, Card, Button, Form } from 'react-bootstrap'
 import Rating from '../components/Rating'
 import { Link } from 'react-router-dom'
-import * as api from '../api'
+import { listProductDetails } from '../actions/productsActions'
+import Loader from '../components/Loader'
+import Message from '../components/Message'
 
-const ProductScreen = ({ match }) => {
-	const [product, setProduct] = useState({})
+const ProductScreen = ({ history, match }) => {
+	const [qty, setQty] = useState(1)
+	const { product, loading, error } = useSelector(state => state.productDetails)
+	const dispatch = useDispatch()
 
 	useEffect(() => {
-		const getProduct = async () => {
-			const { data } = await api.fetchProduct(match.params.id)
-			setProduct(data)
-		}
-		getProduct()
-	}, [match.params.id])
+		dispatch(listProductDetails(match.params.id))
+	}, [match.params.id, dispatch])
+
+	const addToCartHandler = e => {
+		e.preventDefault()
+		history.push(`/cart/${match.params.id}?qty=${qty}`)
+	}
+
+	if (loading) return <Loader />
+	if (error) return <Message />
 
 	return (
 		<>
@@ -23,21 +32,21 @@ const ProductScreen = ({ match }) => {
 			</Link>
 			<Row>
 				<Col md={6}>
-					<Image src={product.image} alt={product.name} fluid />
+					<Image src={product?.image} alt={product?.name} fluid />
 				</Col>
 				<Col md={3}>
 					<ListGroup variant='flush'>
 						<ListGroup.Item>
-							<h3>{product.name}</h3>
+							<h3>{product?.name}</h3>
 						</ListGroup.Item>
 						<ListGroup.Item>
 							<Rating
-								value={product.value}
-								text={`${product.numReviews} reviews`}
+								value={product?.value}
+								text={`${product?.numReviews} reviews`}
 							/>
 						</ListGroup.Item>
-						<ListGroup.Item>Price: ₦{product.price}</ListGroup.Item>
-						<ListGroup.Item>Description: {product.description}</ListGroup.Item>
+						<ListGroup.Item>Price: ₦{product?.price}</ListGroup.Item>
+						<ListGroup.Item>Description: {product?.description}</ListGroup.Item>
 					</ListGroup>
 				</Col>
 				<Col>
@@ -46,22 +55,45 @@ const ProductScreen = ({ match }) => {
 							<ListGroup.Item>
 								<Row>
 									<Col>Price:</Col>
-									<Col>₦{product.price}</Col>
+									<Col>₦{product?.price}</Col>
 								</Row>
 							</ListGroup.Item>
 							<ListGroup.Item>
 								<Row>
 									<Col>Status:</Col>
 									<Col>
-										{product.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
+										{product?.countInStock > 0 ? 'In Stock' : 'Out of Stock'}
+									</Col>
+								</Row>
+							</ListGroup.Item>
+							<ListGroup.Item>
+								<Row>
+									<Col>Qty:</Col>
+									<Col>
+										{product?.countInStock > 0 && (
+											<Form.Control
+												as='select'
+												value={qty}
+												onChange={e => setQty(e.target.value)}
+											>
+												{Array(product.countInStock)
+													.fill(' ')
+													.map((_, i) => (
+														<option key={i + 1} value={i + 1}>
+															{i + 1}
+														</option>
+													))}
+											</Form.Control>
+										)}
 									</Col>
 								</Row>
 							</ListGroup.Item>
 							<ListGroup.Item>
 								<Button
+									onClick={addToCartHandler}
 									className='btn-block'
 									type='button'
-									disabled={product.countInStock === 0}
+									disabled={product?.countInStock === 0}
 								>
 									Add to Cart
 								</Button>
